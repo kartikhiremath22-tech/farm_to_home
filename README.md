@@ -3,12 +3,26 @@
 A direct farmer-to-buyer marketplace built with Python Flask + MySQL.
 No brokers. Fair prices. Fresh produce.
 
+## 🚀 Live Demo
+**Try it now:** https://farm-to-home-i77m.onrender.com
+
+> Note: This is hosted on a free server, so it may take ~50 seconds to load on the first visit if it's been inactive. After that it runs normally.
+
+**Test accounts:**
+| Role | Email | Password |
+|------|-------|----------|
+| Farmer | raju@farm.com | raju123 |
+| Buyer | ankit@buy.com | ankit123 |
+
+Or click **Register** to create your own account!
+
 ## 🛠️ Tech Used
 - Python (Flask)
-- MySQL
+- MySQL (hosted on Railway)
 - HTML + CSS
+- Deployed on Render
 
-## ▶️ How to Run
+## ▶️ Run It Locally
 
 ### Step 1 — Install Python libraries
 ```
@@ -65,6 +79,7 @@ farm_to_home/
 ## 💡 Features
 - Farmer can register, login, add/remove crop listings
 - Buyer can register, login, browse products, place orders
+- Farmer can view incoming orders and update status (Pending → Confirmed → Delivered)
 - No broker in between — direct connection!
 
 ---
