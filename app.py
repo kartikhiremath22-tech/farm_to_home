@@ -7,10 +7,11 @@ app.secret_key = "farmtohome123"
 # ── Database connection ────────────────────────────────────────
 def get_db():
     return mysql.connector.connect(
-        host="localhost",
+        host="thomas.proxy.rlwy.net",
+        port=11499,
         user="root",
-       password="your_password",   # Change this
-        database="farm_to_home"
+        password="HYoUcyfJLGmfuvIrVmOcDRIILicXqNXi",
+        database="railway"
     )
 
 # ── HOME PAGE ──────────────────────────────────────────────────
@@ -224,4 +225,6 @@ def update_order(oid, status):
     return redirect(url_for("farmer_orders"))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
