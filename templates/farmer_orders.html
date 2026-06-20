@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="section-title">📥 Incoming Orders</h2>
+<p class="page-sub">Orders buyers placed for your products. Update status as you process them.</p>
+
+{% if orders %}
+  <div class="orders-list">
+    {% for o in orders %}
+      <div class="order-card">
+        <div class="order-left">
+          <h3>{{ o.product_name }}</h3>
+          <p>Buyer: {{ o.buyer_name }}</p>
+          <p>Quantity: {{ o.quantity }} kg</p>
+          <p>Date: {{ o.created_at.strftime('%d %b %Y') }}</p>
+        </div>
+        <div class="order-right">
+          <p class="order-total">₹{{ "%.2f"|format(o.total_price) }}</p>
+          <span class="status-badge {{ o.status }}">{{ o.status.capitalize() }}</span>
+
+          <div class="status-actions">
+            {% if o.status == 'pending' %}
+              <a href="/update_order/{{ o.id }}/confirmed" class="status-btn confirm">Confirm Order</a>
+            {% elif o.status == 'confirmed' %}
+              <a href="/update_order/{{ o.id }}/delivered" class="status-btn deliver">Mark Delivered</a>
+            {% else %}
+              <span class="done-text">✅ Completed</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No orders yet. Once buyers order your products, they'll show here.</p>
+{% endif %}
+
+{% endblock %}

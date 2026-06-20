@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="form-page">
+  <h2>Login</h2>
+  <p class="form-sub">Welcome back! Login to continue.</p>
+
+  <form method="POST">
+    <label>Email</label>
+    <input type="email" name="email" placeholder="your@email.com" required />
+
+    <label>Password</label>
+    <input type="password" name="password" placeholder="Your password" required />
+
+    <button type="submit" class="submit-btn">Login</button>
+  </form>
+
+  <p class="form-footer">Don't have an account? <a href="/register">Register here</a></p>
+</div>
+
+{% endblock %}

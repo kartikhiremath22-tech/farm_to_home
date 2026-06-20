@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="form-page">
+  <h2>Place Order</h2>
+  <p class="form-sub">Ordering directly from farmer — no broker!</p>
+
+  <div class="order-summary">
+    <p><strong>Product:</strong> {{ product.name }}</p>
+    <p><strong>Farmer:</strong> {{ product.farmer_name }}</p>
+    <p><strong>Location:</strong> {{ product.location }}</p>
+    <p><strong>Price:</strong> ₹{{ product.price }} per kg</p>
+    <p><strong>Available:</strong> {{ product.quantity }} kg</p>
+  </div>
+
+  <form method="POST">
+    <label>Quantity (kg)</label>
+    <input type="number" name="quantity" min="1" max="{{ product.quantity }}"
+           placeholder="Enter quantity" required
+           oninput="document.getElementById('total').textContent = '₹' + (this.value * {{ product.price }})" />
+
+    <div class="total-box">
+      Total: <span id="total">₹0</span>
+    </div>
+
+    <button type="submit" class="submit-btn">Confirm Order</button>
+    <a href="/" class="back-btn">← Back to products</a>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Fresh from Farm — No Broker</h1>
+  <p>Buy directly from verified farmers. Better price, better quality.</p>
+  <a href="/register" class="hero-btn">Get Started</a>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat"><div class="stat-num">124</div><div class="stat-lbl">Farmers</div></div>
+  <div class="stat"><div class="stat-num">340+</div><div class="stat-lbl">Products</div></div>
+  <div class="stat"><div class="stat-num" style="color:#f77f00">0</div><div class="stat-lbl">Brokers</div></div>
+</div>
+
+<!-- PRODUCTS -->
+<h2 class="section-title">🥦 Fresh Produce</h2>
+
+{% if products %}
+  <div class="products-grid">
+    {% for p in products %}
+      <div class="product-card">
+        <div class="product-emoji">
+          {% if p.category == 'Fruits' %}🥭
+          {% elif p.category == 'Grains' %}🌾
+          {% else %}🥦{% endif %}
+        </div>
+        <div class="product-body">
+          <h3>{{ p.name }}</h3>
+          <p class="product-loc">📍 {{ p.location }}</p>
+          <p class="product-price">₹{{ p.price }}<span>/kg</span></p>
+          <p class="product-qty">Available: {{ p.quantity }} kg</p>
+          {% if session.user_id and session.user_role == 'buyer' %}
+            <a href="/order/{{ p.id }}" class="order-btn">Order Now</a>
+          {% elif not session.user_id %}
+            <a href="/login" class="order-btn outline">Login to Order</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No products listed yet. Check back soon!</p>
+{% endif %}
+
+{% endblock %}

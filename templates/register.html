@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="form-page">
+  <h2>Create Account</h2>
+  <p class="form-sub">Join as a farmer or buyer — no broker needed!</p>
+
+  <form method="POST">
+    <label>Full Name</label>
+    <input type="text" name="name" placeholder="Your full name" required />
+
+    <label>Email</label>
+    <input type="email" name="email" placeholder="your@email.com" required />
+
+    <label>Password</label>
+    <input type="password" name="password" placeholder="Create a password" required />
+
+    <label>I am a</label>
+    <select name="role" required>
+      <option value="">-- Select --</option>
+      <option value="farmer">🌾 Farmer — I want to sell produce</option>
+      <option value="buyer">🛒 Buyer — I want to buy produce</option>
+    </select>
+
+    <button type="submit" class="submit-btn">Create Account</button>
+  </form>
+
+  <p class="form-footer">Already have an account? <a href="/login">Login here</a></p>
+</div>
+
+{% endblock %}

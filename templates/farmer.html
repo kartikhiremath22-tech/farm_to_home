@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="section-title">🌾 Farmer Dashboard</h2>
+<p class="page-sub">Manage your listings. No broker. You set the price.</p>
+
+<!-- ADD PRODUCT FORM -->
+<div class="form-card">
+  <h3>➕ Add New Listing</h3>
+  <form method="POST" action="/add_product">
+
+    <div class="form-grid">
+      <div>
+        <label>Crop Name</label>
+        <input type="text" name="name" placeholder="e.g. Tomatoes" required />
+      </div>
+      <div>
+        <label>Category</label>
+        <select name="category" required>
+          <option value="Vegetables">Vegetables</option>
+          <option value="Fruits">Fruits</option>
+          <option value="Grains">Grains</option>
+          <option value="Herbs">Herbs</option>
+        </select>
+      </div>
+      <div>
+        <label>Price per kg (₹)</label>
+        <input type="number" name="price" placeholder="45" required />
+      </div>
+      <div>
+        <label>Quantity (kg)</label>
+        <input type="number" name="quantity" placeholder="500" required />
+      </div>
+    </div>
+
+    <label>Location</label>
+    <input type="text" name="location" placeholder="Village, District, State" required />
+
+    <button type="submit" class="submit-btn">List My Crop</button>
+  </form>
+</div>
+
+<!-- MY LISTINGS -->
+<h3 class="section-title">📋 My Current Listings</h3>
+
+{% if products %}
+  <div class="products-grid">
+    {% for p in products %}
+      <div class="product-card">
+        <div class="product-emoji">
+          {% if p.category == 'Fruits' %}🥭
+          {% elif p.category == 'Grains' %}🌾
+          {% else %}🥦{% endif %}
+        </div>
+        <div class="product-body">
+          <h3>{{ p.name }}</h3>
+          <p class="product-loc">📍 {{ p.location }}</p>
+          <p class="product-price">₹{{ p.price }}<span>/kg</span></p>
+          <p class="product-qty">Stock: {{ p.quantity }} kg</p>
+          <a href="/delete_product/{{ p.id }}" class="delete-btn"
+             onclick="return confirm('Remove this listing?')">Remove</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No listings yet. Add your first crop above!</p>
+{% endif %}
+
+{% endblock %}

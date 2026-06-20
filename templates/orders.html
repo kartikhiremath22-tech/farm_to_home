@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="section-title">📦 My Orders</h2>
+<p class="page-sub">All your orders — placed directly with farmers.</p>
+
+{% if orders %}
+  <div class="orders-list">
+    {% for o in orders %}
+      <div class="order-card">
+        <div class="order-left">
+          <h3>{{ o.product_name }}</h3>
+          <p>Farmer: {{ o.farmer_name }}</p>
+          <p>Quantity: {{ o.quantity }} kg</p>
+          <p>Date: {{ o.created_at.strftime('%d %b %Y') }}</p>
+        </div>
+        <div class="order-right">
+          <p class="order-total">₹{{ "%.2f"|format(o.total_price) }}</p>
+          <span class="status-badge {{ o.status }}">{{ o.status.capitalize() }}</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No orders yet. <a href="/">Browse products</a> and place your first order!</p>
+{% endif %}
+
+{% endblock %}
