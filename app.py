@@ -1,8 +1,40 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
+import os
 
 app = Flask(__name__)
 app.secret_key = "farmtohome123"
+
+# ── Product photo lookup ──────────────────────────────────────────
+# Upload your own photos to static/images/ named like: tomato.jpg, potato.jpg
+# If no photo is found for a product, a matching emoji is shown instead.
+PRODUCT_EMOJIS = {
+    "tomato": "🍅", "potato": "🥔", "broccoli": "🥦", "mango": "🥭",
+    "onion": "🧅", "carrot": "🥕", "banana": "🍌", "apple": "🍎",
+    "rice": "🌾", "wheat": "🌾", "spinach": "🥬", "chilli": "🌶️",
+    "chili": "🌶️", "cabbage": "🥬", "cucumber": "🥒", "corn": "🌽",
+    "garlic": "🧄", "lemon": "🍋", "orange": "🍊", "grape": "🍇",
+}
+DEFAULT_EMOJI = "🌿"
+
+def product_photo_url(name):
+    """If static/images/<name>.jpg (or .png/.jpeg/.webp) exists, return its URL. Else None."""
+    safe_name = name.lower().strip().replace(" ", "_")
+    folder = os.path.join(app.root_path, "static", "images")
+    for ext in ["jpg", "jpeg", "png", "webp"]:
+        filepath = os.path.join(folder, f"{safe_name}.{ext}")
+        if os.path.exists(filepath):
+            return url_for('static', filename=f'images/{safe_name}.{ext}')
+    return None
+
+def product_emoji(name):
+    name_lower = name.lower()
+    for key, emoji in PRODUCT_EMOJIS.items():
+        if key in name_lower:
+            return emoji
+    return DEFAULT_EMOJI
+
+app.jinja_env.globals.update(product_photo_url=product_photo_url, product_emoji=product_emoji)
 
 # ── Database connection ────────────────────────────────────────
 def get_db():
@@ -79,6 +111,52 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("home"))
+
+# ── FORGOT PASSWORD ─────────────────────────────────────────────
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form["email"]
+
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
+        user = cursor.fetchone()
+        db.close()
+
+        if user:
+            # Move to step 2: let them set a new password
+            session["reset_email"] = email
+            return redirect(url_for("reset_password"))
+        else:
+            flash("No account found with that email.", "danger")
+
+    return render_template("forgot_password.html")
+
+# ── RESET PASSWORD ───────────────────────────────────────────────
+@app.route("/reset_password", methods=["GET", "POST"])
+def reset_password():
+    email = session.get("reset_email")
+    if not email:
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        new_password = request.form["password"]
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "UPDATE users SET password=%s WHERE email=%s",
+            (new_password, email)
+        )
+        db.commit()
+        db.close()
+
+        session.pop("reset_email", None)
+        flash("Password updated! Please login with your new password.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", email=email)
 
 # ── FARMER DASHBOARD ──────────────────────────────────────────
 @app.route("/farmer")
@@ -225,6 +303,4 @@ def update_order(oid, status):
     return redirect(url_for("farmer_orders"))
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)

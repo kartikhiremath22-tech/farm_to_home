@@ -3,7 +3,7 @@
 
 <!-- HERO -->
 <div class="hero">
-  <h1>Fresh from Farm — No Broker</h1>
+  <h1>Fresh from Farm to Your Home</h1>
   <p>Buy directly from verified farmers. Better price, better quality.</p>
   <a href="/register" class="hero-btn">Get Started</a>
 </div>
@@ -22,11 +22,12 @@
   <div class="products-grid">
     {% for p in products %}
       <div class="product-card">
-        <div class="product-emoji">
-          {% if p.category == 'Fruits' %}🥭
-          {% elif p.category == 'Grains' %}🌾
-          {% else %}🥦{% endif %}
-        </div>
+        {% set photo = product_photo_url(p.name) %}
+        {% if photo %}
+          <div class="product-photo" style="background-image:url('{{ photo }}')"></div>
+        {% else %}
+          <div class="product-photo product-photo-emoji">{{ product_emoji(p.name) }}</div>
+        {% endif %}
         <div class="product-body">
           <h3>{{ p.name }}</h3>
           <p class="product-loc">📍 {{ p.location }}</p>

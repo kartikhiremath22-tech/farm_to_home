@@ -47,11 +47,12 @@
   <div class="products-grid">
     {% for p in products %}
       <div class="product-card">
-        <div class="product-emoji">
-          {% if p.category == 'Fruits' %}🥭
-          {% elif p.category == 'Grains' %}🌾
-          {% else %}🥦{% endif %}
-        </div>
+        {% set photo = product_photo_url(p.name) %}
+        {% if photo %}
+          <div class="product-photo" style="background-image:url('{{ photo }}')"></div>
+        {% else %}
+          <div class="product-photo product-photo-emoji">{{ product_emoji(p.name) }}</div>
+        {% endif %}
         <div class="product-body">
           <h3>{{ p.name }}</h3>
           <p class="product-loc">📍 {{ p.location }}</p>
