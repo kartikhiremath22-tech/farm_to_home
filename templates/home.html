@@ -1,23 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
-
 <!-- HERO -->
 <div class="hero">
   <h1>Fresh from Farm to Your Home</h1>
   <p>Buy directly from verified farmers. Better price, better quality.</p>
   <a href="/register" class="hero-btn">Get Started</a>
 </div>
-
 <!-- STATS -->
 <div class="stats-row">
   <div class="stat"><div class="stat-num">124</div><div class="stat-lbl">Farmers</div></div>
   <div class="stat"><div class="stat-num">340+</div><div class="stat-lbl">Products</div></div>
   <div class="stat"><div class="stat-num" style="color:#f77f00">0</div><div class="stat-lbl">Brokers</div></div>
 </div>
-
 <!-- PRODUCTS -->
 <h2 class="section-title">🥦 Fresh Produce</h2>
-
 {% if products %}
   <div class="products-grid">
     {% for p in products %}
@@ -33,6 +29,21 @@
           <p class="product-loc">📍 {{ p.location }}</p>
           <p class="product-price">₹{{ p.price }}<span>/kg</span></p>
           <p class="product-qty">Available: {{ p.quantity }} kg</p>
+          {% if p.map_lat and p.map_lng %}
+            <div id="map-{{ p.id }}" style="height:150px; border-radius:8px; margin-top:0.5rem;"></div>
+            <script>
+              (function() {
+                var m = L.map('map-{{ p.id }}', {
+                  zoomControl: false, dragging: false, scrollWheelZoom: false
+                }).setView([{{ p.map_lat }}, {{ p.map_lng }}], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                  attribution: '&copy; OpenStreetMap'
+                }).addTo(m);
+                L.marker([{{ p.map_lat }}, {{ p.map_lng }}]).addTo(m)
+                  .bindPopup("{{ p.name }} — {{ p.farmer_name }}");
+              })();
+            </script>
+          {% endif %}
           {% if session.user_id and session.user_role == 'buyer' %}
             <a href="/order/{{ p.id }}" class="order-btn">Order Now</a>
           {% elif not session.user_id %}
@@ -45,5 +56,4 @@
 {% else %}
   <p class="empty">No products listed yet. Check back soon!</p>
 {% endif %}
-
 {% endblock %}

@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="form-page">
   <h2>Place Order</h2>
   <p class="form-sub">Ordering directly from farmer — no broker!</p>
-
   <div class="order-summary">
     <p><strong>Product:</strong> {{ product.name }}</p>
     <p><strong>Farmer:</strong> {{ product.farmer_name }}</p>
@@ -13,19 +11,33 @@
     <p><strong>Available:</strong> {{ product.quantity }} kg</p>
   </div>
 
+  {% if product.map_lat and product.map_lng %}
+    <p><strong>📍 Farmer Location on Map:</strong></p>
+    <div id="orderMap" style="height:300px; border-radius:10px; margin-bottom:1rem;"></div>
+    <script>
+      var orderMap = L.map('orderMap').setView([{{ product.map_lat }}, {{ product.map_lng }}], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(orderMap);
+      L.marker([{{ product.map_lat }}, {{ product.map_lng }}])
+        .addTo(orderMap)
+        .bindPopup("{{ product.name }}<br>Sold by {{ product.farmer_name }}")
+        .openPopup();
+    </script>
+  {% else %}
+    <p>📍 Location: {{ product.location }} (farmer has not set GPS yet)</p>
+  {% endif %}
+
   <form method="POST">
     <label>Quantity (kg)</label>
     <input type="number" name="quantity" min="1" max="{{ product.quantity }}"
            placeholder="Enter quantity" required
            oninput="document.getElementById('total').textContent = '₹' + (this.value * {{ product.price }})" />
-
     <div class="total-box">
       Total: <span id="total">₹0</span>
     </div>
-
     <button type="submit" class="submit-btn">Confirm Order</button>
     <a href="/" class="back-btn">← Back to products</a>
   </form>
 </div>
-
 {% endblock %}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import mysql.connector
 import os
 
@@ -51,7 +51,16 @@ def get_db():
 def home():
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM products ORDER BY created_at DESC")
+    # Pull product's own coordinates if set, otherwise fall back to the farmer's profile location
+    cursor.execute("""
+        SELECT p.*,
+               u.name AS farmer_name,
+               COALESCE(p.latitude, u.latitude)   AS map_lat,
+               COALESCE(p.longitude, u.longitude) AS map_lng
+        FROM products p
+        JOIN users u ON p.farmer_id = u.id
+        ORDER BY p.created_at DESC
+    """)
     products = cursor.fetchall()
     db.close()
     return render_template("home.html", products=products)
@@ -64,12 +73,14 @@ def register():
         email    = request.form["email"]
         password = request.form["password"]
         role     = request.form["role"]   # farmer or buyer
+        latitude  = request.form.get("latitude") or None
+        longitude = request.form.get("longitude") or None
 
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
-            "INSERT INTO users (name, email, password, role) VALUES (%s, %s, %s, %s)",
-            (name, email, password, role)
+            "INSERT INTO users (name, email, password, role, latitude, longitude) VALUES (%s, %s, %s, %s, %s, %s)",
+            (name, email, password, role, latitude, longitude)
         )
         db.commit()
         db.close()
@@ -171,8 +182,31 @@ def farmer_dashboard():
         (session["user_id"],)
     )
     my_products = cursor.fetchall()
+
+    cursor.execute("SELECT latitude, longitude FROM users WHERE id=%s", (session["user_id"],))
+    profile = cursor.fetchone()
     db.close()
-    return render_template("farmer.html", products=my_products)
+    return render_template("farmer.html", products=my_products, profile=profile)
+
+# ── UPDATE FARMER PROFILE LOCATION ─────────────────────────────
+@app.route("/update_location", methods=["POST"])
+def update_location():
+    if session.get("user_role") != "farmer":
+        return redirect(url_for("login"))
+
+    latitude  = request.form.get("latitude")
+    longitude = request.form.get("longitude")
+
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        "UPDATE users SET latitude=%s, longitude=%s WHERE id=%s",
+        (latitude, longitude, session["user_id"])
+    )
+    db.commit()
+    db.close()
+    flash("Farm location updated!", "success")
+    return redirect(url_for("farmer_dashboard"))
 
 # ── ADD PRODUCT (Farmer) ───────────────────────────────────────
 @app.route("/add_product", methods=["POST"])
@@ -185,12 +219,15 @@ def add_product():
     quantity = request.form["quantity"]
     location = request.form["location"]
     category = request.form["category"]
+    latitude  = request.form.get("latitude") or None
+    longitude = request.form.get("longitude") or None
 
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        "INSERT INTO products (farmer_id, name, price, quantity, location, category) VALUES (%s,%s,%s,%s,%s,%s)",
-        (session["user_id"], name, price, quantity, location, category)
+        """INSERT INTO products (farmer_id, name, price, quantity, location, category, latitude, longitude)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (session["user_id"], name, price, quantity, location, category, latitude, longitude)
     )
     db.commit()
     db.close()
@@ -219,7 +256,12 @@ def order(pid):
 
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT p.*, u.name as farmer_name FROM products p JOIN users u ON p.farmer_id=u.id WHERE p.id=%s", (pid,))
+    cursor.execute("""
+        SELECT p.*, u.name as farmer_name,
+               COALESCE(p.latitude, u.latitude)   AS map_lat,
+               COALESCE(p.longitude, u.longitude) AS map_lng
+        FROM products p JOIN users u ON p.farmer_id=u.id WHERE p.id=%s
+    """, (pid,))
     product = cursor.fetchone()
 
     if request.method == "POST":

@@ -1,14 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-
 <h2 class="section-title">🌾 Farmer Dashboard</h2>
 <p class="page-sub">Manage your listings. No broker. You set the price.</p>
+
+<!-- FARM LOCATION -->
+<div class="form-card" style="margin-bottom: 1.5rem;">
+  <strong>📍 My Farm Location:</strong>
+  {% if profile and profile.latitude %}
+    <span style="color:green;"> Set ✅ ({{ profile.latitude }}, {{ profile.longitude }})</span>
+  {% else %}
+    <span style="color:#888;"> Not set yet</span>
+  {% endif %}
+  <form id="locationForm" action="/update_location" method="POST" style="display:inline;">
+    <input type="hidden" name="latitude" id="farmerLat">
+    <input type="hidden" name="longitude" id="farmerLng">
+    <button type="button" onclick="useMyLocation()" style="margin-left:1rem;">📡 Use My Current Location</button>
+  </form>
+  <p id="locationStatus" style="font-size:0.85rem; color:#888; margin-top:0.3rem;"></p>
+</div>
+
+<script>
+function useMyLocation() {
+  const status = document.getElementById('locationStatus');
+  if (!navigator.geolocation) { status.textContent = "Geolocation not supported."; return; }
+  status.textContent = "Getting your location...";
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    document.getElementById('farmerLat').value = pos.coords.latitude;
+    document.getElementById('farmerLng').value = pos.coords.longitude;
+    status.textContent = "Location found! Saving...";
+    document.getElementById('locationForm').submit();
+  }, function(err) {
+    status.textContent = "Error: " + err.message;
+  });
+}
+</script>
 
 <!-- ADD PRODUCT FORM -->
 <div class="form-card">
   <h3>➕ Add New Listing</h3>
   <form method="POST" action="/add_product">
-
     <div class="form-grid">
       <div>
         <label>Crop Name</label>
@@ -32,9 +62,25 @@
         <input type="number" name="quantity" placeholder="500" required />
       </div>
     </div>
-
     <label>Location</label>
     <input type="text" name="location" placeholder="Village, District, State" required />
+
+    <input type="hidden" name="latitude" id="productLat">
+    <input type="hidden" name="longitude" id="productLng">
+    <br>
+    <button type="button" onclick="useProductLocation()" style="margin-top:0.5rem; margin-bottom:0.5rem;">📡 Use my location for this listing</button>
+    <span id="productLocStatus" style="font-size:0.85rem; color:#888;"></span><br><br>
+
+    <script>
+    function useProductLocation() {
+      const s = document.getElementById('productLocStatus');
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        document.getElementById('productLat').value = pos.coords.latitude;
+        document.getElementById('productLng').value = pos.coords.longitude;
+        s.textContent = "✓ Location captured!";
+      }, function(err) { s.textContent = "Error: " + err.message; });
+    }
+    </script>
 
     <button type="submit" class="submit-btn">List My Crop</button>
   </form>
@@ -42,7 +88,6 @@
 
 <!-- MY LISTINGS -->
 <h3 class="section-title">📋 My Current Listings</h3>
-
 {% if products %}
   <div class="products-grid">
     {% for p in products %}
@@ -67,5 +112,4 @@
 {% else %}
   <p class="empty">No listings yet. Add your first crop above!</p>
 {% endif %}
-
 {% endblock %}
