@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="form-page">
+  <h2>👤 User Details</h2>
+  <p><strong>Name:</strong> {{ user.name }}</p>
+  <p><strong>Email:</strong> {{ user.email }}</p>
+  <p><strong>Role:</strong> {{ user.role }}</p>
+  <p><strong>Country:</strong> {{ user.country }}</p>
+  <p><strong>Status:</strong> {{ user.verification_status }}</p>
+
+  <h3 style="margin-top:1.5rem;">📄 Uploaded Documents</h3>
+  {% if docs %}
+    {% for doc in docs %}
+      <div class="doc-upload-box">
+        <p><strong>{{ doc.doc_type.replace('_', ' ').title() }}</strong> — {{ doc.status }}</p>
+        <a href="/static/uploads/{{ doc.filename }}" target="_blank" class="nav-btn">View Document</a>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty">No documents uploaded yet.</p>
+  {% endif %}
+
+  <div style="margin-top:1.5rem;">
+    <a href="/admin/verify/{{ user.id }}/verified" class="submit-btn"
+       onclick="return confirm('Verify this user?')">✅ Verify User</a>
+    <a href="/admin/verify/{{ user.id }}/rejected" class="delete-btn"
+       onclick="return confirm('Reject this user?')">❌ Reject User</a>
+    <a href="/admin" class="back-btn">← Back to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

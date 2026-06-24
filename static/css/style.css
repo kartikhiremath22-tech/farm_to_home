@@ -198,3 +198,40 @@ footer {
   font-size: 13px; color: #6c757d;
   border-top: 1px solid #e8f5e9; margin-top: 40px;
 }
+/* ── Add these lines to the bottom of your static/css/style.css ── */
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.admin-table th {
+  background: #2d6a4f;
+  color: white;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+}
+.admin-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+.admin-table tr:hover { background: #f9f9f9; }
+
+.doc-upload-box {
+  background: #f8f9fa;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.doc-upload-box label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+}

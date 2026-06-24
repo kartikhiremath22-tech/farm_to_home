@@ -1,13 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
 import os
 
 app = Flask(__name__)
 app.secret_key = "farmtohome123"
 
-# ── Product photo lookup ──────────────────────────────────────────
-# Upload your own photos to static/images/ named like: tomato.jpg, potato.jpg
-# If no photo is found for a product, a matching emoji is shown instead.
 PRODUCT_EMOJIS = {
     "tomato": "🍅", "potato": "🥔", "broccoli": "🥦", "mango": "🥭",
     "onion": "🧅", "carrot": "🥕", "banana": "🍌", "apple": "🍎",
@@ -17,8 +14,10 @@ PRODUCT_EMOJIS = {
 }
 DEFAULT_EMOJI = "🌿"
 
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 def product_photo_url(name):
-    """If static/images/<name>.jpg (or .png/.jpeg/.webp) exists, return its URL. Else None."""
     safe_name = name.lower().strip().replace(" ", "_")
     folder = os.path.join(app.root_path, "static", "images")
     for ext in ["jpg", "jpeg", "png", "webp"]:
@@ -36,7 +35,6 @@ def product_emoji(name):
 
 app.jinja_env.globals.update(product_photo_url=product_photo_url, product_emoji=product_emoji)
 
-# ── Database connection ────────────────────────────────────────
 def get_db():
     return mysql.connector.connect(
         host="thomas.proxy.rlwy.net",
@@ -51,14 +49,15 @@ def get_db():
 def home():
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    # Pull product's own coordinates if set, otherwise fall back to the farmer's profile location
     cursor.execute("""
         SELECT p.*,
                u.name AS farmer_name,
+               u.verification_status AS farmer_verified,
                COALESCE(p.latitude, u.latitude)   AS map_lat,
                COALESCE(p.longitude, u.longitude) AS map_lng
         FROM products p
         JOIN users u ON p.farmer_id = u.id
+        WHERE u.verification_status = 'verified'
         ORDER BY p.created_at DESC
     """)
     products = cursor.fetchall()
@@ -69,22 +68,23 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name     = request.form["name"]
-        email    = request.form["email"]
-        password = request.form["password"]
-        role     = request.form["role"]   # farmer or buyer
+        name      = request.form["name"]
+        email     = request.form["email"]
+        password  = request.form["password"]
+        role      = request.form["role"]
+        country   = request.form.get("country", "India")
         latitude  = request.form.get("latitude") or None
         longitude = request.form.get("longitude") or None
 
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
-            "INSERT INTO users (name, email, password, role, latitude, longitude) VALUES (%s, %s, %s, %s, %s, %s)",
-            (name, email, password, role, latitude, longitude)
+            "INSERT INTO users (name, email, password, role, country, latitude, longitude) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+            (name, email, password, role, country, latitude, longitude)
         )
         db.commit()
         db.close()
-        flash("Account created! Please login.", "success")
+        flash("Account created! Please upload your documents for verification.", "success")
         return redirect(url_for("login"))
     return render_template("register.html")
 
@@ -97,17 +97,15 @@ def login():
 
         db = get_db()
         cursor = db.cursor(dictionary=True)
-        cursor.execute(
-            "SELECT * FROM users WHERE email=%s AND password=%s",
-            (email, password)
-        )
+        cursor.execute("SELECT * FROM users WHERE email=%s AND password=%s", (email, password))
         user = cursor.fetchone()
         db.close()
 
         if user:
-            session["user_id"]   = user["id"]
-            session["user_name"] = user["name"]
-            session["user_role"] = user["role"]
+            session["user_id"]     = user["id"]
+            session["user_name"]   = user["name"]
+            session["user_role"]   = user["role"]
+            session["user_status"] = user["verification_status"]
             flash(f"Welcome, {user['name']}!", "success")
             if user["role"] == "farmer":
                 return redirect(url_for("farmer_dashboard"))
@@ -123,51 +121,85 @@ def logout():
     session.clear()
     return redirect(url_for("home"))
 
-# ── FORGOT PASSWORD ─────────────────────────────────────────────
+# ── FORGOT PASSWORD ──────────────────────────────────────────
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
         email = request.form["email"]
-
         db = get_db()
         cursor = db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
         db.close()
-
         if user:
-            # Move to step 2: let them set a new password
             session["reset_email"] = email
             return redirect(url_for("reset_password"))
         else:
             flash("No account found with that email.", "danger")
-
     return render_template("forgot_password.html")
 
-# ── RESET PASSWORD ───────────────────────────────────────────────
+# ── RESET PASSWORD ───────────────────────────────────────────
 @app.route("/reset_password", methods=["GET", "POST"])
 def reset_password():
     email = session.get("reset_email")
     if not email:
         return redirect(url_for("forgot_password"))
-
     if request.method == "POST":
         new_password = request.form["password"]
-
         db = get_db()
         cursor = db.cursor()
-        cursor.execute(
-            "UPDATE users SET password=%s WHERE email=%s",
-            (new_password, email)
-        )
+        cursor.execute("UPDATE users SET password=%s WHERE email=%s", (new_password, email))
         db.commit()
         db.close()
-
         session.pop("reset_email", None)
-        flash("Password updated! Please login with your new password.", "success")
+        flash("Password updated! Please login.", "success")
+        return redirect(url_for("login"))
+    return render_template("reset_password.html", email=email)
+
+# ── UPLOAD DOCUMENTS ─────────────────────────────────────────
+@app.route("/upload_documents", methods=["GET", "POST"])
+def upload_documents():
+    if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    return render_template("reset_password.html", email=email)
+    if request.method == "POST":
+        user_id = session["user_id"]
+        role    = session["user_role"]
+        db      = get_db()
+        cursor  = db.cursor()
+
+        # Determine which docs to expect
+        if role == "farmer":
+            doc_types = ["aadhaar", "land_record", "fssai"]
+        else:
+            doc_types = ["aadhaar", "address_proof"]
+
+        for doc_type in doc_types:
+            file = request.files.get(doc_type)
+            if file and file.filename:
+                safe_filename = f"{user_id}_{doc_type}_{file.filename}"
+                file.save(os.path.join(UPLOAD_FOLDER, safe_filename))
+                # Check if already uploaded, update or insert
+                cursor.execute("SELECT id FROM documents WHERE user_id=%s AND doc_type=%s", (user_id, doc_type))
+                existing = cursor.fetchone()
+                if existing:
+                    cursor.execute("UPDATE documents SET filename=%s, status='pending' WHERE user_id=%s AND doc_type=%s",
+                                   (safe_filename, user_id, doc_type))
+                else:
+                    cursor.execute("INSERT INTO documents (user_id, doc_type, filename) VALUES (%s,%s,%s)",
+                                   (user_id, doc_type, safe_filename))
+
+        # Set verification status to pending
+        cursor.execute("UPDATE users SET verification_status='pending' WHERE id=%s", (user_id,))
+        db.commit()
+        db.close()
+        session["user_status"] = "pending"
+        flash("Documents uploaded! Please wait for admin verification.", "success")
+        if role == "farmer":
+            return redirect(url_for("farmer_dashboard"))
+        return redirect(url_for("home"))
+
+    return render_template("upload_documents.html")
 
 # ── FARMER DASHBOARD ──────────────────────────────────────────
 @app.route("/farmer")
@@ -177,56 +209,54 @@ def farmer_dashboard():
 
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM products WHERE farmer_id=%s ORDER BY created_at DESC",
-        (session["user_id"],)
-    )
+    cursor.execute("SELECT * FROM products WHERE farmer_id=%s ORDER BY created_at DESC", (session["user_id"],))
     my_products = cursor.fetchall()
-
-    cursor.execute("SELECT latitude, longitude FROM users WHERE id=%s", (session["user_id"],))
+    cursor.execute("SELECT latitude, longitude, verification_status FROM users WHERE id=%s", (session["user_id"],))
     profile = cursor.fetchone()
-    db.close()
-    return render_template("farmer.html", products=my_products, profile=profile)
 
-# ── UPDATE FARMER PROFILE LOCATION ─────────────────────────────
+    # Get uploaded documents
+    cursor.execute("SELECT * FROM documents WHERE user_id=%s", (session["user_id"],))
+    my_docs = {d["doc_type"]: d for d in cursor.fetchall()}
+    db.close()
+    return render_template("farmer.html", products=my_products, profile=profile, my_docs=my_docs)
+
+# ── UPDATE FARMER LOCATION ────────────────────────────────────
 @app.route("/update_location", methods=["POST"])
 def update_location():
     if session.get("user_role") != "farmer":
         return redirect(url_for("login"))
-
     latitude  = request.form.get("latitude")
     longitude = request.form.get("longitude")
-
     db = get_db()
     cursor = db.cursor()
-    cursor.execute(
-        "UPDATE users SET latitude=%s, longitude=%s WHERE id=%s",
-        (latitude, longitude, session["user_id"])
-    )
+    cursor.execute("UPDATE users SET latitude=%s, longitude=%s WHERE id=%s",
+                   (latitude, longitude, session["user_id"]))
     db.commit()
     db.close()
     flash("Farm location updated!", "success")
     return redirect(url_for("farmer_dashboard"))
 
-# ── ADD PRODUCT (Farmer) ───────────────────────────────────────
+# ── ADD PRODUCT ───────────────────────────────────────────────
 @app.route("/add_product", methods=["POST"])
 def add_product():
     if session.get("user_role") != "farmer":
         return redirect(url_for("login"))
+    if session.get("user_status") != "verified":
+        flash("Your account must be verified before listing products.", "danger")
+        return redirect(url_for("farmer_dashboard"))
 
-    name     = request.form["name"]
-    price    = request.form["price"]
-    quantity = request.form["quantity"]
-    location = request.form["location"]
-    category = request.form["category"]
+    name      = request.form["name"]
+    price     = request.form["price"]
+    quantity  = request.form["quantity"]
+    location  = request.form["location"]
+    category  = request.form["category"]
     latitude  = request.form.get("latitude") or None
     longitude = request.form.get("longitude") or None
 
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        """INSERT INTO products (farmer_id, name, price, quantity, location, category, latitude, longitude)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+        "INSERT INTO products (farmer_id, name, price, quantity, location, category, latitude, longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
         (session["user_id"], name, price, quantity, location, category, latitude, longitude)
     )
     db.commit()
@@ -234,25 +264,25 @@ def add_product():
     flash(f"{name} listed successfully!", "success")
     return redirect(url_for("farmer_dashboard"))
 
-# ── DELETE PRODUCT (Farmer) ────────────────────────────────────
+# ── DELETE PRODUCT ────────────────────────────────────────────
 @app.route("/delete_product/<int:pid>")
 def delete_product(pid):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute(
-        "DELETE FROM products WHERE id=%s AND farmer_id=%s",
-        (pid, session["user_id"])
-    )
+    cursor.execute("DELETE FROM products WHERE id=%s AND farmer_id=%s", (pid, session["user_id"]))
     db.commit()
     db.close()
     flash("Listing removed.", "success")
     return redirect(url_for("farmer_dashboard"))
 
-# ── PLACE ORDER (Buyer) ────────────────────────────────────────
+# ── ORDER ─────────────────────────────────────────────────────
 @app.route("/order/<int:pid>", methods=["GET", "POST"])
 def order(pid):
     if not session.get("user_id"):
         return redirect(url_for("login"))
+    if session.get("user_status") != "verified":
+        flash("Your account must be verified before placing orders.", "danger")
+        return redirect(url_for("upload_documents"))
 
     db = get_db()
     cursor = db.cursor(dictionary=True)
@@ -280,12 +310,11 @@ def order(pid):
     db.close()
     return render_template("order.html", product=product)
 
-# ── MY ORDERS (Buyer) ──────────────────────────────────────────
+# ── MY ORDERS ─────────────────────────────────────────────────
 @app.route("/orders")
 def my_orders():
     if not session.get("user_id"):
         return redirect(url_for("login"))
-
     db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("""
@@ -300,12 +329,11 @@ def my_orders():
     db.close()
     return render_template("orders.html", orders=orders)
 
-# ── INCOMING ORDERS (Farmer) ───────────────────────────────────
+# ── FARMER ORDERS ─────────────────────────────────────────────
 @app.route("/farmer_orders")
 def farmer_orders():
     if session.get("user_role") != "farmer":
         return redirect(url_for("login"))
-
     db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("""
@@ -320,31 +348,101 @@ def farmer_orders():
     db.close()
     return render_template("farmer_orders.html", orders=orders)
 
-# ── UPDATE ORDER STATUS (Farmer) ───────────────────────────────
+# ── UPDATE ORDER STATUS ───────────────────────────────────────
 @app.route("/update_order/<int:oid>/<status>")
 def update_order(oid, status):
     if session.get("user_role") != "farmer":
         return redirect(url_for("login"))
-
-    # Only allow valid status values
     if status not in ["pending", "confirmed", "delivered"]:
         return redirect(url_for("farmer_orders"))
-
     db = get_db()
     cursor = db.cursor()
-    # Make sure the order belongs to one of this farmer's products
     cursor.execute("""
-        UPDATE orders o
-        JOIN products p ON o.product_id = p.id
-        SET o.status = %s
-        WHERE o.id = %s AND p.farmer_id = %s
+        UPDATE orders o JOIN products p ON o.product_id = p.id
+        SET o.status = %s WHERE o.id = %s AND p.farmer_id = %s
     """, (status, oid, session["user_id"]))
     db.commit()
     db.close()
     flash(f"Order marked as {status}!", "success")
     return redirect(url_for("farmer_orders"))
 
+# ══════════════════════════════════════════════════════════════
+# ADMIN ROUTES
+# ══════════════════════════════════════════════════════════════
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        email    = request.form["email"]
+        password = request.form["password"]
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM admins WHERE email=%s AND password=%s", (email, password))
+        admin = cursor.fetchone()
+        db.close()
+        if admin:
+            session["admin_id"]   = admin["id"]
+            session["admin_name"] = admin["name"]
+            return redirect(url_for("admin_dashboard"))
+        else:
+            flash("Wrong admin credentials.", "danger")
+    return render_template("admin_login.html")
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin_id", None)
+    session.pop("admin_name", None)
+    return redirect(url_for("admin_login"))
+
+@app.route("/admin")
+def admin_dashboard():
+    if not session.get("admin_id"):
+        return redirect(url_for("admin_login"))
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE verification_status='pending' ORDER BY created_at DESC")
+    pending_users = cursor.fetchall()
+    cursor.execute("SELECT * FROM users WHERE verification_status='verified' ORDER BY created_at DESC")
+    verified_users = cursor.fetchall()
+    cursor.execute("SELECT * FROM users WHERE verification_status='rejected' ORDER BY created_at DESC")
+    rejected_users = cursor.fetchall()
+    db.close()
+    return render_template("admin_dashboard.html",
+                           pending_users=pending_users,
+                           verified_users=verified_users,
+                           rejected_users=rejected_users)
+
+@app.route("/admin/user/<int:uid>")
+def admin_view_user(uid):
+    if not session.get("admin_id"):
+        return redirect(url_for("admin_login"))
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE id=%s", (uid,))
+    user = cursor.fetchone()
+    cursor.execute("SELECT * FROM documents WHERE user_id=%s", (uid,))
+    docs = cursor.fetchall()
+    db.close()
+    return render_template("admin_view_user.html", user=user, docs=docs)
+
+@app.route("/admin/verify/<int:uid>/<action>")
+def admin_verify(uid, action):
+    if not session.get("admin_id"):
+        return redirect(url_for("admin_login"))
+    if action not in ["verified", "rejected"]:
+        return redirect(url_for("admin_dashboard"))
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE users SET verification_status=%s WHERE id=%s", (action, uid))
+    if action == "verified":
+        cursor.execute("UPDATE documents SET status='approved' WHERE user_id=%s", (uid,))
+    else:
+        cursor.execute("UPDATE documents SET status='rejected' WHERE user_id=%s", (uid,))
+    db.commit()
+    db.close()
+    flash(f"User {'verified ✅' if action == 'verified' else 'rejected ❌'}!", "success")
+    return redirect(url_for("admin_dashboard"))
+
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

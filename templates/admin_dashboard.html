@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section-title">🛡️ Admin Dashboard</h2>
+<p class="page-sub">Welcome, {{ session.admin_name }}! | <a href="/admin/logout">Logout</a></p>
+
+<!-- PENDING -->
+<h3 class="section-title" style="color:#f77f00;">⏳ Pending Verification ({{ pending_users|length }})</h3>
+{% if pending_users %}
+  <table class="admin-table">
+    <tr><th>Name</th><th>Email</th><th>Role</th><th>Country</th><th>Registered</th><th>Action</th></tr>
+    {% for u in pending_users %}
+    <tr>
+      <td>{{ u.name }}</td>
+      <td>{{ u.email }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ u.country }}</td>
+      <td>{{ u.created_at }}</td>
+      <td>
+        <a href="/admin/user/{{ u.id }}" class="nav-btn">View Docs</a>
+        <a href="/admin/verify/{{ u.id }}/verified" class="submit-btn" style="padding:0.3rem 0.8rem; font-size:0.85rem;"
+           onclick="return confirm('Verify this user?')">✅ Verify</a>
+        <a href="/admin/verify/{{ u.id }}/rejected" class="delete-btn"
+           onclick="return confirm('Reject this user?')">❌ Reject</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p class="empty">No pending verifications.</p>
+{% endif %}
+
+<!-- VERIFIED -->
+<h3 class="section-title" style="color:green; margin-top:2rem;">✅ Verified Users ({{ verified_users|length }})</h3>
+{% if verified_users %}
+  <table class="admin-table">
+    <tr><th>Name</th><th>Email</th><th>Role</th><th>Country</th></tr>
+    {% for u in verified_users %}
+    <tr>
+      <td>{{ u.name }}</td>
+      <td>{{ u.email }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ u.country }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p class="empty">No verified users yet.</p>
+{% endif %}
+
+<!-- REJECTED -->
+<h3 class="section-title" style="color:red; margin-top:2rem;">❌ Rejected Users ({{ rejected_users|length }})</h3>
+{% if rejected_users %}
+  <table class="admin-table">
+    <tr><th>Name</th><th>Email</th><th>Role</th><th>Country</th></tr>
+    {% for u in rejected_users %}
+    <tr>
+      <td>{{ u.name }}</td>
+      <td>{{ u.email }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ u.country }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p class="empty">No rejected users.</p>
+{% endif %}
+{% endblock %}

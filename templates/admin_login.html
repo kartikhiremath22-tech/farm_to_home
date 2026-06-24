@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="form-page">
+  <h2>🔐 Admin Login</h2>
+  <p class="form-sub">Farm to Home Admin Panel</p>
+  <form method="POST">
+    <label>Email</label>
+    <input type="email" name="email" placeholder="admin@farmtohome.com" required />
+    <label>Password</label>
+    <input type="password" name="password" placeholder="Admin password" required />
+    <button type="submit" class="submit-btn">Login as Admin</button>
+  </form>
+</div>
+{% endblock %}

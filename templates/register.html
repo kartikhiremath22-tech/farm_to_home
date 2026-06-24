@@ -1,31 +1,42 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="form-page">
   <h2>Create Account</h2>
   <p class="form-sub">Join as a farmer or buyer — no broker needed!</p>
-
   <form method="POST">
     <label>Full Name</label>
     <input type="text" name="name" placeholder="Your full name" required />
-
     <label>Email</label>
     <input type="email" name="email" placeholder="your@email.com" required />
-
     <label>Password</label>
     <input type="password" name="password" placeholder="Create a password" required />
-
     <label>I am a</label>
     <select name="role" required>
       <option value="">-- Select --</option>
       <option value="farmer">🌾 Farmer — I want to sell produce</option>
       <option value="buyer">🛒 Buyer — I want to buy produce</option>
     </select>
-
+    <label>Country</label>
+    <select name="country" required>
+      <option value="">-- Select Country --</option>
+      <option value="India">🇮🇳 India</option>
+      <option value="USA">🇺🇸 United States</option>
+      <option value="UK">🇬🇧 United Kingdom</option>
+      <option value="Australia">🇦🇺 Australia</option>
+      <option value="Canada">🇨🇦 Canada</option>
+      <option value="UAE">🇦🇪 UAE</option>
+      <option value="Germany">🇩🇪 Germany</option>
+      <option value="France">🇫🇷 France</option>
+      <option value="Brazil">🇧🇷 Brazil</option>
+      <option value="South Africa">🇿🇦 South Africa</option>
+      <option value="Nigeria">🇳🇬 Nigeria</option>
+      <option value="Kenya">🇰🇪 Kenya</option>
+      <option value="Japan">🇯🇵 Japan</option>
+      <option value="China">🇨🇳 China</option>
+      <option value="Other">🌍 Other</option>
+    </select>
     <button type="submit" class="submit-btn">Create Account</button>
   </form>
-
   <p class="form-footer">Already have an account? <a href="/login">Login here</a></p>
 </div>
-
 {% endblock %}

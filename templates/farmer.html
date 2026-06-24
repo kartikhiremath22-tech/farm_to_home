@@ -3,6 +3,27 @@
 <h2 class="section-title">🌾 Farmer Dashboard</h2>
 <p class="page-sub">Manage your listings. No broker. You set the price.</p>
 
+<!-- VERIFICATION STATUS -->
+{% if profile.verification_status == 'unverified' %}
+  <div class="flash danger" style="margin-bottom:1rem;">
+    ⚠️ Your account is <strong>not verified</strong> yet.
+    <a href="/upload_documents" class="nav-btn" style="margin-left:1rem;">📄 Upload Documents</a>
+  </div>
+{% elif profile.verification_status == 'pending' %}
+  <div class="flash" style="background:#fff3cd; color:#856404; margin-bottom:1rem;">
+    ⏳ Your documents are <strong>under review</strong>. We'll notify you once verified.
+  </div>
+{% elif profile.verification_status == 'rejected' %}
+  <div class="flash danger" style="margin-bottom:1rem;">
+    ❌ Your verification was <strong>rejected</strong>. Please re-upload correct documents.
+    <a href="/upload_documents" class="nav-btn" style="margin-left:1rem;">📄 Re-upload</a>
+  </div>
+{% elif profile.verification_status == 'verified' %}
+  <div class="flash success" style="background:#d4edda; color:#155724; margin-bottom:1rem;">
+    ✅ Your account is <strong>verified</strong>! You can list products.
+  </div>
+{% endif %}
+
 <!-- FARM LOCATION -->
 <div class="form-card" style="margin-bottom: 1.5rem;">
   <strong>📍 My Farm Location:</strong>
@@ -35,7 +56,8 @@ function useMyLocation() {
 }
 </script>
 
-<!-- ADD PRODUCT FORM -->
+<!-- ADD PRODUCT FORM — only if verified -->
+{% if profile.verification_status == 'verified' %}
 <div class="form-card">
   <h3>➕ Add New Listing</h3>
   <form method="POST" action="/add_product">
@@ -64,13 +86,11 @@ function useMyLocation() {
     </div>
     <label>Location</label>
     <input type="text" name="location" placeholder="Village, District, State" required />
-
     <input type="hidden" name="latitude" id="productLat">
     <input type="hidden" name="longitude" id="productLng">
     <br>
     <button type="button" onclick="useProductLocation()" style="margin-top:0.5rem; margin-bottom:0.5rem;">📡 Use my location for this listing</button>
     <span id="productLocStatus" style="font-size:0.85rem; color:#888;"></span><br><br>
-
     <script>
     function useProductLocation() {
       const s = document.getElementById('productLocStatus');
@@ -81,10 +101,10 @@ function useMyLocation() {
       }, function(err) { s.textContent = "Error: " + err.message; });
     }
     </script>
-
     <button type="submit" class="submit-btn">List My Crop</button>
   </form>
 </div>
+{% endif %}
 
 <!-- MY LISTINGS -->
 <h3 class="section-title">📋 My Current Listings</h3>
@@ -110,6 +130,6 @@ function useMyLocation() {
     {% endfor %}
   </div>
 {% else %}
-  <p class="empty">No listings yet. Add your first crop above!</p>
+  <p class="empty">No listings yet. {% if profile.verification_status == 'verified' %}Add your first crop above!{% endif %}</p>
 {% endif %}
 {% endblock %}
