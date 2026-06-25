@@ -235,3 +235,46 @@ footer {
   display: block;
   margin-bottom: 0.5rem;
 }
+/* ── Add these lines to the bottom of static/css/style.css ── */
+
+/* Search bar */
+.search-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.search-box input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e8f5e9;
+  border-radius: 99px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-box input:focus {
+  border-color: #1a6b3c;
+}
+.search-box button {
+  padding: 12px 24px;
+  background: #1a6b3c;
+  color: white;
+  border: none;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.search-box button:hover { background: #145a32; }
+
+/* Category badge */
+.category-badge {
+  display: inline-block;
+  background: #e8f5e9;
+  color: #1a6b3c;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
