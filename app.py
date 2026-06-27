@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
 import os
+from apmc_helper import get_apmc_price
 
 app = Flask(__name__)
 app.secret_key = "farmtohome123"
@@ -294,6 +295,11 @@ def order(pid):
     """, (pid,))
     product = cursor.fetchone()
 
+    # Fetch APMC market price
+    apmc = None
+    if product and product.get("location"):
+        apmc = get_apmc_price(product["name"], product["location"])
+
     if request.method == "POST":
         quantity = int(request.form["quantity"])
         total    = quantity * float(product["price"])
@@ -308,7 +314,7 @@ def order(pid):
         return redirect(url_for("my_orders"))
 
     db.close()
-    return render_template("order.html", product=product)
+    return render_template("order.html", product=product, apmc=apmc)
 
 # ── MY ORDERS ─────────────────────────────────────────────────
 @app.route("/orders")

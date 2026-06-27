@@ -7,9 +7,35 @@
     <p><strong>Product:</strong> {{ product.name }}</p>
     <p><strong>Farmer:</strong> {{ product.farmer_name }}</p>
     <p><strong>Location:</strong> {{ product.location }}</p>
-    <p><strong>Price:</strong> ₹{{ product.price }} per kg</p>
+    <p><strong>Farmer's Price:</strong> ₹{{ product.price }} per kg</p>
     <p><strong>Available:</strong> {{ product.quantity }} kg</p>
   </div>
+
+  <!-- APMC MARKET PRICE BOX -->
+  {% if apmc %}
+  <div style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+    <p style="font-weight:600; color:#1a6b3c; margin-bottom:0.5rem;">📊 Today's APMC Market Rate</p>
+    <p style="font-size:13px; color:#444;">
+      <strong>Commodity:</strong> {{ apmc.commodity }} &nbsp;|&nbsp;
+      <strong>Market:</strong> {{ apmc.market }}, {{ apmc.state }}
+    </p>
+    <div style="display:flex; gap:1rem; margin-top:0.5rem; flex-wrap:wrap;">
+      <div style="background:white; padding:8px 14px; border-radius:8px; text-align:center;">
+        <div style="font-size:11px; color:#6c757d;">Min Price</div>
+        <div style="font-size:16px; font-weight:600; color:#1a6b3c;">₹{{ apmc.min_price }}/q</div>
+      </div>
+      <div style="background:white; padding:8px 14px; border-radius:8px; text-align:center;">
+        <div style="font-size:11px; color:#6c757d;">Modal Price</div>
+        <div style="font-size:16px; font-weight:600; color:#f77f00;">₹{{ apmc.modal_price }}/q</div>
+      </div>
+      <div style="background:white; padding:8px 14px; border-radius:8px; text-align:center;">
+        <div style="font-size:11px; color:#6c757d;">Max Price</div>
+        <div style="font-size:16px; font-weight:600; color:#1a6b3c;">₹{{ apmc.max_price }}/q</div>
+      </div>
+    </div>
+    <p style="font-size:11px; color:#888; margin-top:0.5rem;">* APMC prices are per quintal (100kg). Farmer's price is per kg. Data from data.gov.in</p>
+  </div>
+  {% endif %}
 
   {% if product.map_lat and product.map_lng %}
     <p><strong>📍 Farmer Location on Map:</strong></p>
@@ -32,7 +58,7 @@
     <label>Quantity (kg)</label>
     <input type="number" name="quantity" min="1" max="{{ product.quantity }}"
            placeholder="Enter quantity" required
-           oninput="document.getElementById('total').textContent = '₹' + (this.value * {{ product.price }})" />
+           oninput="document.getElementById('total').textContent = '₹' + (this.value * {{ product.price }}).toFixed(2)" />
     <div class="total-box">
       Total: <span id="total">₹0</span>
     </div>
