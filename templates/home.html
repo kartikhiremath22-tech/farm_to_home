@@ -39,6 +39,13 @@
         <div class="product-body">
           <h3>{{ p.name }}</h3>
           <span class="category-badge">{{ p.category }}</span>
+          {% if p.farmer_rating and p.farmer_rating > 0 %}
+          <p style="font-size:12px; color:#f77f00; margin-bottom:4px;">
+            ⭐ {{ "%.1f"|format(p.farmer_rating) }} — {{ p.farmer_name }}
+          </p>
+          {% else %}
+          <p style="font-size:12px; color:#6c757d; margin-bottom:4px;">🌱 {{ p.farmer_name }}</p>
+          {% endif %}
           <p class="product-loc">📍 {{ p.location }}</p>
           <p class="product-price">₹{{ p.price }}<span>/kg</span></p>
           <p class="product-qty">Available: {{ p.quantity }} kg</p>

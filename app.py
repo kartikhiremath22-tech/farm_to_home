@@ -53,6 +53,7 @@ def home():
     cursor.execute("""
         SELECT p.*,
                u.name AS farmer_name,
+               u.avg_rating AS farmer_rating,
                u.verification_status AS farmer_verified,
                COALESCE(p.latitude, u.latitude)   AS map_lat,
                COALESCE(p.longitude, u.longitude) AS map_lng
@@ -338,7 +339,11 @@ def my_orders():
     db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("""
-        SELECT o.*, p.name as product_name, u.name as farmer_name
+        SELECT o.id, o.buyer_id, o.product_id, o.quantity, o.total_price,
+               o.status, o.created_at,
+               p.name as product_name,
+               u.name as farmer_name,
+               u.id as farmer_id
         FROM orders o
         JOIN products p ON o.product_id = p.id
         JOIN users u ON p.farmer_id = u.id
@@ -346,8 +351,47 @@ def my_orders():
         ORDER BY o.created_at DESC
     """, (session["user_id"],))
     orders = cursor.fetchall()
+
+    # Check which orders already have a rating
+    for o in orders:
+        cursor2 = db.cursor(dictionary=True)
+        cursor2.execute(
+            "SELECT rating FROM ratings WHERE buyer_id=%s AND farmer_id=%s",
+            (session["user_id"], o["farmer_id"])
+        )
+        existing = cursor2.fetchone()
+        o["already_rated"] = bool(existing)
+        o["my_rating"] = existing["rating"] if existing else None
+        cursor2.close()
     db.close()
     return render_template("orders.html", orders=orders)
+
+# ── RATE FARMER ───────────────────────────────────────────────
+@app.route("/rate_farmer", methods=["POST"])
+def rate_farmer():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    farmer_id = request.form.get("farmer_id")
+    rating    = request.form.get("rating")
+    review    = request.form.get("review", "")
+
+    db = get_db()
+    cursor = db.cursor()
+    # Save rating
+    cursor.execute(
+        "INSERT INTO ratings (buyer_id, farmer_id, rating, review) VALUES (%s,%s,%s,%s)",
+        (session["user_id"], farmer_id, rating, review)
+    )
+    # Update farmer's avg_rating
+    cursor.execute("""
+        UPDATE users SET avg_rating = (
+            SELECT AVG(rating) FROM ratings WHERE farmer_id=%s
+        ) WHERE id=%s
+    """, (farmer_id, farmer_id))
+    db.commit()
+    db.close()
+    flash("Thank you for your rating! ⭐", "success")
+    return redirect(url_for("my_orders"))
 
 # ── FARMER ORDERS ─────────────────────────────────────────────
 @app.route("/farmer_orders")
