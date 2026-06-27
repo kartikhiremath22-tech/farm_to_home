@@ -212,7 +212,7 @@ def farmer_dashboard():
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM products WHERE farmer_id=%s ORDER BY created_at DESC", (session["user_id"],))
     my_products = cursor.fetchall()
-    cursor.execute("SELECT latitude, longitude, verification_status FROM users WHERE id=%s", (session["user_id"],))
+    cursor.execute("SELECT latitude, longitude, verification_status, phone FROM users WHERE id=%s", (session["user_id"],))
     profile = cursor.fetchone()
 
     # Get uploaded documents
@@ -220,6 +220,20 @@ def farmer_dashboard():
     my_docs = {d["doc_type"]: d for d in cursor.fetchall()}
     db.close()
     return render_template("farmer.html", products=my_products, profile=profile, my_docs=my_docs)
+
+# ── UPDATE FARMER PHONE ───────────────────────────────────────
+@app.route("/update_phone", methods=["POST"])
+def update_phone():
+    if session.get("user_role") != "farmer":
+        return redirect(url_for("login"))
+    phone = request.form.get("phone", "").strip()
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE users SET phone=%s WHERE id=%s", (phone, session["user_id"]))
+    db.commit()
+    db.close()
+    flash("WhatsApp number updated!", "success")
+    return redirect(url_for("farmer_dashboard"))
 
 # ── UPDATE FARMER LOCATION ────────────────────────────────────
 @app.route("/update_location", methods=["POST"])
@@ -288,7 +302,7 @@ def order(pid):
     db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("""
-        SELECT p.*, u.name as farmer_name,
+        SELECT p.*, u.name as farmer_name, u.phone as farmer_phone,
                COALESCE(p.latitude, u.latitude)   AS map_lat,
                COALESCE(p.longitude, u.longitude) AS map_lng
         FROM products p JOIN users u ON p.farmer_id=u.id WHERE p.id=%s

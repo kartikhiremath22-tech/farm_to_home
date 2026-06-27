@@ -24,6 +24,25 @@
   </div>
 {% endif %}
 
+<!-- WHATSAPP / PHONE NUMBER -->
+<div class="form-card" style="margin-bottom:1.5rem;">
+  <strong>📱 WhatsApp Number:</strong>
+  {% if profile and profile.phone %}
+    <span style="color:green;"> Set ✅ ({{ profile.phone }})</span>
+  {% else %}
+    <span style="color:#888;"> Not set yet — buyers won't be able to WhatsApp you</span>
+  {% endif %}
+  <form action="/update_phone" method="POST" style="display:flex; gap:8px; margin-top:0.5rem;">
+    <input type="tel" name="phone" placeholder="e.g. 919876543210 (with country code)"
+           value="{{ profile.phone or '' }}"
+           style="flex:1; padding:8px 12px; border-radius:99px; border:1px solid #ddd; font-size:13px;" />
+    <button type="submit" style="padding:8px 18px; background:#25D366; color:white; border:none; border-radius:99px; cursor:pointer;">
+      💾 Save
+    </button>
+  </form>
+  <p style="font-size:12px; color:#888; margin-top:4px;">Enter your number with country code. India: 91XXXXXXXXXX</p>
+</div>
+
 <!-- FARM LOCATION -->
 <div class="form-card" style="margin-bottom: 1.5rem;">
   <strong>📍 My Farm Location:</strong>

@@ -54,6 +54,14 @@
     <p>📍 Location: {{ product.location }} (farmer has not set GPS yet)</p>
   {% endif %}
 
+  {% if product.farmer_phone %}
+  <a href="https://wa.me/{{ product.farmer_phone }}?text=Hi%20{{ product.farmer_name }}%2C%20I%20am%20interested%20in%20buying%20your%20{{ product.name }}%20listed%20on%20Farm%20to%20Home."
+     target="_blank"
+     style="display:block; text-align:center; background:#25D366; color:white; padding:12px; border-radius:99px; text-decoration:none; font-size:15px; font-weight:500; margin-bottom:1rem;">
+    💬 Chat with Farmer on WhatsApp
+  </a>
+  {% endif %}
+
   <form method="POST">
     <label>Quantity (kg)</label>
     <input type="number" name="quantity" min="1" max="{{ product.quantity }}"
