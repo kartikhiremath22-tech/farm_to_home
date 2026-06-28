@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
 import os
+import bcrypt
 from apmc_helper import get_apmc_price
 
 app = Flask(__name__)
@@ -78,11 +79,14 @@ def register():
         latitude  = request.form.get("latitude") or None
         longitude = request.form.get("longitude") or None
 
+        # Hash password
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
             "INSERT INTO users (name, email, password, role, country, latitude, longitude) VALUES (%s,%s,%s,%s,%s,%s,%s)",
-            (name, email, password, role, country, latitude, longitude)
+            (name, email, hashed, role, country, latitude, longitude)
         )
         db.commit()
         db.close()
@@ -99,22 +103,30 @@ def login():
 
         db = get_db()
         cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email=%s AND password=%s", (email, password))
+        cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
         db.close()
 
         if user:
-            session["user_id"]     = user["id"]
-            session["user_name"]   = user["name"]
-            session["user_role"]   = user["role"]
-            session["user_status"] = user["verification_status"]
-            flash(f"Welcome, {user['name']}!", "success")
-            if user["role"] == "farmer":
-                return redirect(url_for("farmer_dashboard"))
+            stored = user["password"]
+            # Check if password is bcrypt hashed or plain text (old accounts)
+            try:
+                valid = bcrypt.checkpw(password.encode('utf-8'), stored.encode('utf-8'))
+            except Exception:
+                valid = (password == stored)
+            
+            if valid:
+                session["user_id"]     = user["id"]
+                session["user_name"]   = user["name"]
+                session["user_role"]   = user["role"]
+                session["user_status"] = user["verification_status"]
+                flash(f"Welcome, {user['name']}!", "success")
+                if user["role"] == "farmer":
+                    return redirect(url_for("farmer_dashboard"))
+                else:
+                    return redirect(url_for("home"))
             else:
-                return redirect(url_for("home"))
-        else:
-            flash("Wrong email or password.", "danger")
+                flash("Wrong email or password.", "danger")
     return render_template("login.html")
 
 # ── LOGOUT ────────────────────────────────────────────────────
@@ -148,9 +160,10 @@ def reset_password():
         return redirect(url_for("forgot_password"))
     if request.method == "POST":
         new_password = request.form["password"]
+        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("UPDATE users SET password=%s WHERE email=%s", (new_password, email))
+        cursor.execute("UPDATE users SET password=%s WHERE email=%s", (hashed, email))
         db.commit()
         db.close()
         session.pop("reset_email", None)
