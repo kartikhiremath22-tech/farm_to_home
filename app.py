@@ -2,7 +2,16 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import mysql.connector
 import os
 import bcrypt
+import cloudinary
+import cloudinary.uploader
 from apmc_helper import get_apmc_price
+
+# Cloudinary config
+cloudinary.config(
+    cloud_name = "dd0y41hus",
+    api_key    = "175554718152593",
+    api_secret = "hyBAFtrXfLlFBY2gdBh5fR-WuDY"
+)
 
 app = Flask(__name__)
 app.secret_key = "farmtohome123"
@@ -57,7 +66,8 @@ def home():
                u.avg_rating AS farmer_rating,
                u.verification_status AS farmer_verified,
                COALESCE(p.latitude, u.latitude)   AS map_lat,
-               COALESCE(p.longitude, u.longitude) AS map_lng
+               COALESCE(p.longitude, u.longitude) AS map_lng,
+               p.image_url AS image_url
         FROM products p
         JOIN users u ON p.farmer_id = u.id
         WHERE u.verification_status = 'verified'
@@ -282,11 +292,25 @@ def add_product():
     latitude  = request.form.get("latitude") or None
     longitude = request.form.get("longitude") or None
 
+    # Handle image upload to Cloudinary
+    image_url = None
+    image_file = request.files.get("product_image")
+    if image_file and image_file.filename:
+        try:
+            result = cloudinary.uploader.upload(
+                image_file,
+                folder="farm_to_home",
+                transformation=[{"width": 600, "height": 400, "crop": "fill"}]
+            )
+            image_url = result.get("secure_url")
+        except Exception as e:
+            flash(f"Image upload failed: {e}", "danger")
+
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        "INSERT INTO products (farmer_id, name, price, quantity, location, category, latitude, longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-        (session["user_id"], name, price, quantity, location, category, latitude, longitude)
+        "INSERT INTO products (farmer_id, name, price, quantity, location, category, latitude, longitude, image_url) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (session["user_id"], name, price, quantity, location, category, latitude, longitude, image_url)
     )
     db.commit()
     db.close()

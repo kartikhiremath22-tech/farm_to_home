@@ -48,7 +48,9 @@
            data-category="{{ p.category | lower }}"
            data-price="{{ p.price }}">
         {% set photo = product_photo_url(p.name) %}
-        {% if photo %}
+        {% if p.image_url %}
+          <div class="product-photo" style="background-image:url('{{ p.image_url }}')"></div>
+        {% elif photo %}
           <div class="product-photo" style="background-image:url('{{ photo }}')"></div>
         {% else %}
           <div class="product-photo product-photo-emoji">{{ product_emoji(p.name) }}</div>

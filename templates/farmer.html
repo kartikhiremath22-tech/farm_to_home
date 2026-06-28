@@ -79,7 +79,7 @@ function useMyLocation() {
 {% if profile.verification_status == 'verified' %}
 <div class="form-card">
   <h3>➕ Add New Listing</h3>
-  <form method="POST" action="/add_product">
+  <form method="POST" action="/add_product" enctype="multipart/form-data">
     <div class="form-grid">
       <div>
         <label>Crop Name</label>
@@ -105,6 +105,13 @@ function useMyLocation() {
     </div>
     <label>Location</label>
     <input type="text" name="location" placeholder="Village, District, State" required />
+
+    <label>📸 Crop Photo (optional)</label>
+    <div class="doc-upload-box">
+      <input type="file" name="product_image" accept="image/*" capture="environment"
+             style="width:100%;" />
+      <p style="font-size:12px; color:#888; margin-top:4px;">Upload from gallery or take a photo directly</p>
+    </div>
     <input type="hidden" name="latitude" id="productLat">
     <input type="hidden" name="longitude" id="productLng">
     <br>
