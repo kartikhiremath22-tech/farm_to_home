@@ -19,6 +19,22 @@
          oninput="filterProducts()" onkeydown="if(event.key==='Enter') filterProducts()" />
   <button onclick="filterProducts()">Search</button>
 </div>
+
+<!-- PRICE FILTER -->
+<div style="background:white; border:1px solid #e8f5e9; border-radius:12px; padding:1rem; margin-bottom:8px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+    <strong style="font-size:14px;">💰 Price Filter (per kg)</strong>
+    <span id="priceDisplay" style="font-size:13px; color:#1a6b3c; font-weight:600;">₹0 — ₹500</span>
+  </div>
+  <div style="display:flex; gap:1rem; align-items:center;">
+    <span style="font-size:12px; color:#6c757d;">₹0</span>
+    <input type="range" id="maxPrice" min="0" max="500" value="500" step="5"
+           oninput="updatePriceFilter()"
+           style="flex:1; accent-color:#1a6b3c;" />
+    <span style="font-size:12px; color:#6c757d;">₹500</span>
+  </div>
+</div>
+
 <p id="searchCount" style="font-size:13px; color:#6c757d; margin-bottom:12px;"></p>
 
 <!-- PRODUCTS -->
@@ -29,7 +45,8 @@
       <div class="product-card"
            data-name="{{ p.name | lower }}"
            data-location="{{ p.location | lower }}"
-           data-category="{{ p.category | lower }}">
+           data-category="{{ p.category | lower }}"
+           data-price="{{ p.price }}">
         {% set photo = product_photo_url(p.name) %}
         {% if photo %}
           <div class="product-photo" style="background-image:url('{{ photo }}')"></div>
@@ -79,28 +96,40 @@
 {% endif %}
 
 <script>
+function updatePriceFilter() {
+  const max = document.getElementById('maxPrice').value;
+  document.getElementById('priceDisplay').textContent = '₹0 — ₹' + max;
+  filterProducts();
+}
+
 function filterProducts() {
-  const query = document.getElementById('searchInput').value.toLowerCase().trim();
-  const cards = document.querySelectorAll('#productsGrid .product-card');
-  let visible = 0;
+  const query    = document.getElementById('searchInput').value.toLowerCase().trim();
+  const maxPrice = parseFloat(document.getElementById('maxPrice').value);
+  const cards    = document.querySelectorAll('#productsGrid .product-card');
+  let visible    = 0;
 
   cards.forEach(card => {
     const name     = card.dataset.name     || '';
     const location = card.dataset.location || '';
     const category = card.dataset.category || '';
-    const matches  = name.includes(query) || location.includes(query) || category.includes(query);
+    const price    = parseFloat(card.dataset.price) || 0;
+
+    const matchesSearch = query === '' || name.includes(query) || location.includes(query) || category.includes(query);
+    const matchesPrice  = price <= maxPrice;
+    const matches       = matchesSearch && matchesPrice;
+
     card.style.display = matches ? '' : 'none';
     if (matches) visible++;
   });
 
-  const count = document.getElementById('searchCount');
+  const count     = document.getElementById('searchCount');
   const noResults = document.getElementById('noResults');
 
-  if (query === '') {
+  if (query === '' && maxPrice >= 500) {
     count.textContent = '';
     noResults.style.display = 'none';
   } else {
-    count.textContent = visible + ' result(s) found for "' + query + '"';
+    count.textContent = visible + ' result(s) found';
     noResults.style.display = visible === 0 ? 'block' : 'none';
   }
 }
