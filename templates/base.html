@@ -19,6 +19,7 @@
         {% if session.user_role == 'farmer' %}
           <a href="/farmer" class="nav-btn">My Dashboard</a>
           <a href="/farmer_orders" class="nav-btn">Incoming Orders</a>
+          <a href="/farmer_analytics" class="nav-btn">📊 Analytics</a>
         {% else %}
           <a href="/orders" class="nav-btn">My Orders</a>
         {% endif %}

@@ -544,6 +544,69 @@ def admin_verify(uid, action):
     flash(f"User {'verified ✅' if action == 'verified' else 'rejected ❌'}!", "success")
     return redirect(url_for("admin_dashboard"))
 
+@app.route("/farmer_analytics")
+def farmer_analytics():
+    if session.get("user_role") != "farmer":
+        return redirect(url_for("login"))
+
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+
+    # Total orders
+    cursor.execute("""
+        SELECT COUNT(*) as total_orders, SUM(o.total_price) as total_revenue
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE p.farmer_id = %s
+    """, (session["user_id"],))
+    summary = cursor.fetchone()
+
+    # Orders by status
+    cursor.execute("""
+        SELECT o.status, COUNT(*) as count
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE p.farmer_id = %s
+        GROUP BY o.status
+    """, (session["user_id"],))
+    status_counts = {r["status"]: r["count"] for r in cursor.fetchall()}
+
+    # Top products
+    cursor.execute("""
+        SELECT p.name, COUNT(o.id) as order_count, SUM(o.quantity) as total_qty, SUM(o.total_price) as revenue
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE p.farmer_id = %s
+        GROUP BY p.id, p.name
+        ORDER BY revenue DESC
+    """, (session["user_id"],))
+    top_products = cursor.fetchall()
+
+    # Recent orders
+    cursor.execute("""
+        SELECT o.*, p.name as product_name, u.name as buyer_name
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON o.buyer_id = u.id
+        WHERE p.farmer_id = %s
+        ORDER BY o.created_at DESC
+        LIMIT 5
+    """, (session["user_id"],))
+    recent_orders = cursor.fetchall()
+
+    # Farmer rating
+    cursor.execute("SELECT avg_rating FROM users WHERE id=%s", (session["user_id"],))
+    farmer = cursor.fetchone()
+
+    db.close()
+    return render_template("farmer_analytics.html",
+                           summary=summary,
+                           status_counts=status_counts,
+                           top_products=top_products,
+                           recent_orders=recent_orders,
+                           avg_rating=farmer["avg_rating"] or 0)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

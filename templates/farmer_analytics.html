@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section-title">📊 My Analytics</h2>
+<p class="page-sub">Your farm performance at a glance.</p>
+
+<!-- SUMMARY CARDS -->
+<div class="stats-row" style="grid-template-columns: repeat(4, 1fr);">
+  <div class="stat">
+    <div class="stat-num">{{ summary.total_orders or 0 }}</div>
+    <div class="stat-lbl">Total Orders</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">₹{{ "%.0f"|format(summary.total_revenue or 0) }}</div>
+    <div class="stat-lbl">Total Revenue</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">{{ status_counts.get('delivered', 0) }}</div>
+    <div class="stat-lbl">Delivered</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="color:#f77f00;">⭐ {{ "%.1f"|format(avg_rating) }}</div>
+    <div class="stat-lbl">Avg Rating</div>
+  </div>
+</div>
+
+<!-- ORDER STATUS BREAKDOWN -->
+<div class="form-card" style="margin-top:1.5rem;">
+  <h3>📦 Orders by Status</h3>
+  <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.5rem;">
+    <div style="background:#fff3e0; padding:12px 20px; border-radius:10px; text-align:center;">
+      <div style="font-size:22px; font-weight:600; color:#e65100;">{{ status_counts.get('pending', 0) }}</div>
+      <div style="font-size:12px; color:#6c757d;">Pending</div>
+    </div>
+    <div style="background:#e8f5e9; padding:12px 20px; border-radius:10px; text-align:center;">
+      <div style="font-size:22px; font-weight:600; color:#1b5e20;">{{ status_counts.get('confirmed', 0) }}</div>
+      <div style="font-size:12px; color:#6c757d;">Confirmed</div>
+    </div>
+    <div style="background:#e3f2fd; padding:12px 20px; border-radius:10px; text-align:center;">
+      <div style="font-size:22px; font-weight:600; color:#1565c0;">{{ status_counts.get('delivered', 0) }}</div>
+      <div style="font-size:12px; color:#6c757d;">Delivered</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOP PRODUCTS -->
+<div class="form-card" style="margin-top:1.5rem;">
+  <h3>🏆 Top Products by Revenue</h3>
+  {% if top_products %}
+    <table class="admin-table" style="margin-top:0.5rem;">
+      <tr>
+        <th>Product</th>
+        <th>Orders</th>
+        <th>Total Qty (kg)</th>
+        <th>Revenue</th>
+      </tr>
+      {% for p in top_products %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{{ p.order_count }}</td>
+        <td>{{ p.total_qty }} kg</td>
+        <td>₹{{ "%.2f"|format(p.revenue) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="empty">No orders yet.</p>
+  {% endif %}
+</div>
+
+<!-- RECENT ORDERS -->
+<div class="form-card" style="margin-top:1.5rem;">
+  <h3>🕐 Recent Orders</h3>
+  {% if recent_orders %}
+    <table class="admin-table" style="margin-top:0.5rem;">
+      <tr>
+        <th>Product</th>
+        <th>Buyer</th>
+        <th>Qty</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Date</th>
+      </tr>
+      {% for o in recent_orders %}
+      <tr>
+        <td>{{ o.product_name }}</td>
+        <td>{{ o.buyer_name }}</td>
+        <td>{{ o.quantity }} kg</td>
+        <td>₹{{ "%.2f"|format(o.total_price) }}</td>
+        <td><span class="status-badge {{ o.status }}">{{ o.status.capitalize() }}</span></td>
+        <td>{{ o.created_at.strftime('%d %b %Y') }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="empty">No recent orders.</p>
+  {% endif %}
+</div>
+
+<a href="/farmer" class="back-btn" style="display:block; text-align:center; margin-top:1rem;">← Back to Dashboard</a>
+{% endblock %}
