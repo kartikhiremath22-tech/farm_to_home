@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import mysql.connector
 import os
 import bcrypt
 import cloudinary
 import cloudinary.uploader
+import razorpay
 from apmc_helper import get_apmc_price
 
 # Cloudinary config
@@ -11,6 +12,11 @@ cloudinary.config(
     cloud_name = "dd0y41hus",
     api_key    = "175554718152593",
     api_secret = "hyBAFtrXfLlFBY2gdBh5fR-WuDY"
+)
+
+# Razorpay config
+razorpay_client = razorpay.Client(
+    auth=("rzp_test_T7Rj1N5fdQUWCq", "LvfPVColp72lNbatxPA2H8s0")
 )
 
 app = Flask(__name__)
@@ -606,6 +612,57 @@ def farmer_analytics():
                            recent_orders=recent_orders,
                            avg_rating=farmer["avg_rating"] or 0)
 
+# ── RAZORPAY PAYMENT ──────────────────────────────────────────
+@app.route("/create_order/<int:pid>", methods=["POST"])
+def create_payment_order(pid):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    quantity = int(request.form["quantity"])
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM products WHERE id=%s", (pid,))
+    product = cursor.fetchone()
+    db.close()
+
+    total = quantity * float(product["price"])
+    amount_paise = int(total * 100)  # Razorpay uses paise
+
+    # Create Razorpay order
+    razorpay_order = razorpay_client.order.create({
+        "amount": amount_paise,
+        "currency": "INR",
+        "payment_capture": 1
+    })
+
+    return render_template("payment.html",
+                           product=product,
+                           quantity=quantity,
+                           total=total,
+                           razorpay_order_id=razorpay_order["id"],
+                           razorpay_key="rzp_test_T7Rj1N5fdQUWCq",
+                           amount_paise=amount_paise)
+
+@app.route("/payment_success", methods=["POST"])
+def payment_success():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    product_id = int(request.form["product_id"])
+    quantity   = int(request.form["quantity"])
+    total      = float(request.form["total"])
+    payment_id = request.form.get("razorpay_payment_id")
+
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        "INSERT INTO orders (buyer_id, product_id, quantity, total_price, status) VALUES (%s,%s,%s,%s,'confirmed')",
+        (session["user_id"], product_id, quantity, total)
+    )
+    db.commit()
+    db.close()
+    flash(f"Payment successful! 🎉 Payment ID: {payment_id}", "success")
+    return redirect(url_for("my_orders"))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

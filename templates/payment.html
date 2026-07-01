@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="form-page">
+  <h2>💳 Complete Payment</h2>
+  <p class="form-sub">Secure payment powered by Razorpay</p>
+
+  <div class="order-summary">
+    <p><strong>Product:</strong> {{ product.name }}</p>
+    <p><strong>Quantity:</strong> {{ quantity }} kg</p>
+    <p><strong>Total Amount:</strong> ₹{{ "%.2f"|format(total) }}</p>
+  </div>
+
+  <div style="background:#e8f5e9; border-radius:10px; padding:1rem; margin-bottom:1rem; font-size:13px; color:#1a6b3c;">
+    🔒 Your payment is secured by Razorpay. Test mode — no real money will be charged.
+  </div>
+
+  <button id="rzp-button" class="submit-btn" style="margin-top:0;">
+    💳 Pay ₹{{ "%.2f"|format(total) }} Now
+  </button>
+
+  <form id="payment-form" action="/payment_success" method="POST" style="display:none;">
+    <input type="hidden" name="product_id" value="{{ product.id }}">
+    <input type="hidden" name="quantity" value="{{ quantity }}">
+    <input type="hidden" name="total" value="{{ total }}">
+    <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
+    <input type="hidden" name="razorpay_order_id" id="razorpay_order_id">
+    <input type="hidden" name="razorpay_signature" id="razorpay_signature">
+  </form>
+
+  <a href="/" class="back-btn">← Cancel and go back</a>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+var options = {
+  key: "{{ razorpay_key }}",
+  amount: "{{ amount_paise }}",
+  currency: "INR",
+  name: "Farm to Home",
+  description: "{{ product.name }} — {{ quantity }} kg",
+  order_id: "{{ razorpay_order_id }}",
+  handler: function(response) {
+    document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+    document.getElementById('razorpay_order_id').value   = response.razorpay_order_id;
+    document.getElementById('razorpay_signature').value  = response.razorpay_signature;
+    document.getElementById('payment-form').submit();
+  },
+  prefill: {
+    name: "{{ session.user_name }}",
+  },
+  theme: { color: "#1a6b3c" }
+};
+
+document.getElementById('rzp-button').onclick = function(e) {
+  var rzp = new Razorpay(options);
+  rzp.open();
+  e.preventDefault();
+}
+</script>
+{% endblock %}

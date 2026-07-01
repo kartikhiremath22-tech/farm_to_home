@@ -64,14 +64,30 @@
 
   <form method="POST">
     <label>Quantity (kg)</label>
-    <input type="number" name="quantity" min="1" max="{{ product.quantity }}"
+    <input type="number" name="quantity" id="qty" min="1" max="{{ product.quantity }}"
            placeholder="Enter quantity" required
            oninput="document.getElementById('total').textContent = '₹' + (this.value * {{ product.price }}).toFixed(2)" />
     <div class="total-box">
       Total: <span id="total">₹0</span>
     </div>
-    <button type="submit" class="submit-btn">Confirm Order</button>
-    <a href="/" class="back-btn">← Back to products</a>
+    <button type="submit" class="submit-btn">📦 Cash on Delivery</button>
   </form>
+
+  <div style="text-align:center; margin:0.5rem 0; color:#6c757d; font-size:13px;">— or —</div>
+
+  <form method="POST" action="/create_order/{{ product.id }}">
+    <input type="number" name="quantity" id="qty2" min="1" max="{{ product.quantity }}"
+           placeholder="Enter quantity for online payment" required
+           style="width:100%; padding:10px 14px; border:1px solid #dee2e6; border-radius:10px; font-size:14px; margin-bottom:10px;"
+           oninput="document.getElementById('total2').textContent = '₹' + (this.value * {{ product.price }}).toFixed(2)" />
+    <div class="total-box" style="margin-bottom:10px;">
+      Total: <span id="total2">₹0</span>
+    </div>
+    <button type="submit" style="width:100%; padding:12px; background:#2d6a4f; color:white; border:none; border-radius:99px; font-size:15px; font-weight:500; cursor:pointer;">
+      💳 Pay Online with Razorpay
+    </button>
+  </form>
+
+  <a href="/" class="back-btn">← Back to products</a>
 </div>
 {% endblock %}
