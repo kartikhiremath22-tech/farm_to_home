@@ -13,6 +13,16 @@
           <p>Farmer: {{ o.farmer_name }}</p>
           <p>Quantity: {{ o.quantity }} kg</p>
           <p>Date: {{ o.created_at.strftime('%d %b %Y') }}</p>
+          <p>
+            {% if o.payment_method == 'online' %}
+              💳 <strong>Online Payment</strong>
+              {% if o.payment_id %}
+              <span style="font-size:11px; color:#6c757d;">| ID: {{ o.payment_id }}</span>
+              {% endif %}
+            {% else %}
+              📦 <strong>Cash on Delivery</strong>
+            {% endif %}
+          </p>
         </div>
         <div class="order-right">
           <p class="order-total">₹{{ "%.2f"|format(o.total_price) }}</p>

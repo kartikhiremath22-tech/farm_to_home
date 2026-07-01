@@ -363,7 +363,7 @@ def order(pid):
         total    = quantity * float(product["price"])
         cursor2  = db.cursor()
         cursor2.execute(
-            "INSERT INTO orders (buyer_id, product_id, quantity, total_price) VALUES (%s,%s,%s,%s)",
+            "INSERT INTO orders (buyer_id, product_id, quantity, total_price, payment_method) VALUES (%s,%s,%s,%s,'cod')",
             (session["user_id"], pid, quantity, total)
         )
         db.commit()
@@ -383,7 +383,7 @@ def my_orders():
     cursor = db.cursor(dictionary=True)
     cursor.execute("""
         SELECT o.id, o.buyer_id, o.product_id, o.quantity, o.total_price,
-               o.status, o.created_at,
+               o.status, o.created_at, o.payment_id, o.payment_method,
                p.name as product_name,
                u.name as farmer_name,
                u.id as farmer_id
@@ -656,8 +656,8 @@ def payment_success():
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        "INSERT INTO orders (buyer_id, product_id, quantity, total_price, status) VALUES (%s,%s,%s,%s,'confirmed')",
-        (session["user_id"], product_id, quantity, total)
+        "INSERT INTO orders (buyer_id, product_id, quantity, total_price, status, payment_id, payment_method) VALUES (%s,%s,%s,%s,'confirmed',%s,'online')",
+        (session["user_id"], product_id, quantity, total, payment_id)
     )
     db.commit()
     db.close()
